@@ -3,6 +3,7 @@
 This is the optional [foonathan/lexy](https://github.com/foonathan/lexy) backend
 for libexpr. Build and comparison commands are documented in the
 [developer guide](../../../doc/manual/source/development/lexy.md).
+See [STATUS.md](STATUS.md) for measurements and their limits.
 
 Start with `../include/nix/expr/parser.hh`, which defines `ParserBackendTraits`,
 `ParserBackend` and the borrowed `ParsedAst` handle. The traits name expression,
