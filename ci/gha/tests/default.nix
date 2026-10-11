@@ -64,6 +64,16 @@ rec {
     }
   );
 
+  # Keep the ordinary matrix Bison-only and exercise the opt-in build separately.
+  # Build this job without benchmarks to exercise the checker independently of
+  # Google Benchmark and check that packaged sources include private test headers.
+  nixComponentsLexy = nixComponentsInstrumented.overrideScope (
+    final: prev: {
+      nix-expr = prev.nix-expr.override { enableLexy = true; };
+      nix-expr-tests = prev.nix-expr-tests.override { withBenchmarks = false; };
+    }
+  );
+
   nixComponentsFuzzerOnly = nixComponents.overrideScope (
     _: _: {
       withUnitTests = false;
@@ -96,6 +106,23 @@ rec {
       LANG=C.UTF-8 ${pkgs.changelog-d}/bin/changelog-d ${../../../doc/manual/rl-next} >$out
     '';
     repl-completion = pkgs.callPackage ../../../tests/repl-completion.nix { inherit (packages') nix; };
+
+    parser-corpus-driver =
+      pkgs.runCommand "parser-corpus-driver-tests"
+        {
+          nativeBuildInputs = [ pkgs.python3 ];
+          src = lib.fileset.toSource {
+            root = ../../..;
+            fileset = lib.fileset.unions [
+              ../../../maintainers/check-parser-corpus.py
+              ../../../tests/parser-corpus/test_driver.py
+            ];
+          };
+        }
+        ''
+          python "$src/tests/parser-corpus/test_driver.py"
+          touch $out
+        '';
 
     /**
       Checks for our packaging expressions.
@@ -214,6 +241,31 @@ rec {
     }
     // lib.optionalAttrs (pkgs.stdenv.hostPlatform == pkgs.stdenv.buildPlatform) {
       "${componentTestsPrefix}nix-functional-tests" = nixComponentsInstrumented.nix-functional-tests;
+      "${componentTestsPrefix}nix-expr-tests-lexy" = nixComponentsLexy.nix-expr-tests.tests.run;
+      "${componentTestsPrefix}nix-functional-tests-lexy" = nixComponentsLexy.nix-functional-tests;
+      "${componentTestsPrefix}nix-parser-corpus-lexy" =
+        pkgs.runCommand "nix-parser-corpus-lexy"
+          {
+            nativeBuildInputs = [ pkgs.python3 ];
+            src = lib.fileset.toSource {
+              root = ../../..;
+              fileset = lib.fileset.unions [
+                ../../../maintainers/check-parser-corpus.py
+                ../../../maintainers/generate-parser-boundaries.py
+                ../../../tests/functional/lang
+              ];
+            };
+          }
+          ''
+            mkdir -p "$out"
+            checker=${lib.getExe' nixComponentsLexy.nix-expr-tests "nix-parser-check"}
+            # Real source fixtures and generated boundaries; no differences are expected.
+            python "$src/maintainers/check-parser-corpus.py" "$src/tests/functional/lang" \
+              --checker "$checker" --output "$out/language.json"
+            python "$src/maintainers/generate-parser-boundaries.py" boundaries
+            python "$src/maintainers/check-parser-corpus.py" boundaries \
+              --checker "$checker" --output "$out/boundaries.json"
+          '';
       "${componentTestsPrefix}nix-json-schema-checks" = nixComponentsInstrumented.nix-json-schema-checks;
     };
 
