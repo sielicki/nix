@@ -2,6 +2,7 @@
   lib,
   stdenv,
   mkMesonLibrary,
+  callPackage,
 
   bison,
   flex,
@@ -31,6 +32,7 @@
   # Temporarily disabled on Windows because the `GC_throw_bad_alloc`
   # symbol is missing during linking.
   enableGC ? !stdenv.hostPlatform.isWindows,
+  enableLexy ? false,
 }:
 
 let
@@ -49,6 +51,7 @@ mkMesonLibrary (finalAttrs: {
     ./.version
     ./meson.build
     ./meson.options
+    ./lexy/meson.build
     ./primops/meson.build
     ./include/nix/expr/meson.build
     (fileset.fileFilter (file: file.hasExt "cc") ./.)
@@ -68,6 +71,7 @@ mkMesonLibrary (finalAttrs: {
     sqlite
     toml11
   ]
+  ++ lib.optional enableLexy (callPackage ../../packaging/foonathan-lexy.nix { })
   ++ lib.optional stdenv.hostPlatform.isx86_64 libcpuid;
 
   propagatedBuildInputs = [
@@ -81,7 +85,10 @@ mkMesonLibrary (finalAttrs: {
 
   mesonFlags = [
     (lib.mesonEnable "gc" enableGC)
+    (lib.mesonEnable "lexy" enableLexy)
   ];
+
+  passthru = { inherit enableLexy; };
 
   meta = {
     platforms = lib.platforms.unix ++ lib.platforms.windows;

@@ -3,3 +3,10 @@ option(
   type : 'feature',
   description : 'enable garbage collection in the Nix expression evaluator (requires Boehm GC)',
 )
+
+option(
+  'lexy',
+  type : 'feature',
+  value : 'disabled',
+  description : 'build the experimental foonathan/lexy parser (select with --option parser lexy)',
+)

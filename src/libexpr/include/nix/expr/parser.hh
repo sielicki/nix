@@ -165,6 +165,28 @@ struct BisonParserBackend
     parseReplBindings(std::span<char> input, ParserState & state);
 };
 
+#if NIX_HAVE_LEXY
+class LexyParserBackend
+{
+public:
+    using traits_type = NativeParserTraits;
+    using allocator_type = traits_type::allocator_type;
+
+    LexyParserBackend(std::allocator_arg_t, allocator_type allocator)
+        : allocator(allocator)
+    {
+    }
+
+    [[nodiscard]] std::expected<ParsedAst<Expr>, ParseError>
+    parseExpr(std::span<char> input, ParserState & state) const;
+    [[nodiscard]] std::expected<ParsedAst<ExprAttrs>, ParseError>
+    parseReplBindings(std::span<char> input, ParserState & state) const;
+
+private:
+    allocator_type allocator;
+};
+#endif
+
 /**
  * Construct native expressions without binding variables or evaluating them.
  * The Flex scanner requires two trailing NUL bytes, included in length,

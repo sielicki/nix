@@ -246,6 +246,12 @@
           # TODO probably should be `nix-cli`
           nix = nixComponentsFor.${system}.native.nix-everything;
           default = nixComponentsFor.${system}.native.nix-everything;
+          nix-lexy =
+            (nixComponentsFor.${system}.native.overrideScope (
+              finalScope: prevScope: {
+                nix-expr = prevScope.nix-expr.override { enableLexy = true; };
+              }
+            )).nix-cli;
           inherit (nixComponentsFor.${system}.native)
             nix-manual
             nix-manual-manpages-only
@@ -407,6 +413,15 @@
           // {
             native = self.devShells.${system}.native-stdenv;
             default = self.devShells.${system}.native;
+            lexy = makeShell {
+              pkgs = nixpkgsFor.${system}.native;
+              nixComponents = nixComponentsFor.${system}.native.overrideScope (
+                finalScope: prevScope: {
+                  withUnityBuild = false;
+                  nix-expr = prevScope.nix-expr.override { enableLexy = true; };
+                }
+              );
+            };
           }
         );
 

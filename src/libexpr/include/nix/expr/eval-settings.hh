@@ -80,6 +80,18 @@ public:
 
     EvalSettings(bool & readOnlyMode, LookupPathHooks lookupPathHooks = {});
 
+    Setting<std::string> parser{
+        this,
+        "bison",
+        "parser",
+        R"(
+          Parser used for Nix expressions: `bison` (the default) or `lexy`.
+          The experimental `lexy` backend requires a build with lexy support.
+          Both backends require the `pipe-operators` experimental feature for
+          pipes and support the legacy `f or` syntax with the same warnings.
+          Syntax error messages can differ between backends.
+        )"};
+
     /* FIXME: This really shouldn't be public. The C API should have non-global settings instead. */
     bool * readOnlyMode = nullptr;
 

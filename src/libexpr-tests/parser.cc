@@ -74,7 +74,13 @@ protected:
     }
 };
 
-using ParserBackends = ::testing::Types<BisonParserBackend>;
+using ParserBackends = ::testing::Types<
+    BisonParserBackend
+#if NIX_HAVE_LEXY
+    ,
+    LexyParserBackend
+#endif
+    >;
 TYPED_TEST_SUITE(ParserTest, ParserBackends);
 
 struct MissingBindingsTraits
@@ -713,5 +719,59 @@ TYPED_TEST(ParserTest, ReplBindingsAndIncompleteInput)
         }
     }
 }
+
+#if NIX_HAVE_LEXY
+using LexyParserTest = ParserTest<LexyParserBackend>;
+
+TEST_F(LexyParserTest, OperatorDepthIsBounded)
+{
+    // Prefix and right-associative operators recurse without dsl::recurse.
+    // Cover completed and truncated input, both entry points, and cleanup after errors.
+    auto previous = experimentalFeatureSettings.experimentalFeatures.get();
+    Finally restore([&] { experimentalFeatureSettings.experimentalFeatures = previous; });
+    experimentalFeatureSettings.experimentalFeatures = {Xp::PipeOperators};
+    for (auto prefix : {"! ", "- ", "true -> ", "[] ++ ", "{} // ", "(x: x) <| "}) {
+        std::string source;
+        for (int i = 0; i < 10001; ++i)
+            source += prefix;
+        for (auto suffix : {"", "42"}) {
+            SCOPED_TRACE(prefix);
+            SCOPED_TRACE(suffix);
+            auto check = [](auto result) {
+                ASSERT_FALSE(result);
+                EXPECT_NE(
+                    std::string_view(result.error().what()).find("maximum operator nesting depth exceeded"),
+                    std::string_view::npos);
+                EXPECT_FALSE(result.error().isIncomplete());
+            };
+            check(parse<false>(source + suffix, state.rootPath(CanonPath::root), state.staticBaseEnv));
+            check(parse<true>("deep = " + source + suffix + ";", state.rootPath(CanonPath::root), state.staticBaseEnv));
+        }
+    }
+    EXPECT_THAT(eval("!false"), IsTrue());
+    EXPECT_THAT(eval("(x: x) <| 42"), IsIntEq(42));
+}
+
+TEST_F(LexyParserTest, RecursionBoundIsNotIncompleteInput)
+{
+    // Cross the current grammar bound exactly at EOF. Appending more input
+    // cannot repair this error, so the REPL must not ask for continuation.
+    auto check = [](auto parse) {
+        try {
+            parse();
+            FAIL() << "expected a grammar recursion error";
+        } catch (ParseError & e) {
+            EXPECT_NE(std::string_view(e.what()).find("maximum recursion depth exceeded"), std::string_view::npos);
+            EXPECT_FALSE(e.isIncomplete());
+        }
+    };
+    check([&] { parseExprFromString(std::string(10001, '('), state.rootPath(CanonPath::root)); });
+    check([&] {
+        parseReplBindings("deep = " + std::string(10000, '('), state.rootPath(CanonPath::root), state.staticBaseEnv);
+    });
+    EXPECT_THAT(eval("42"), IsIntEq(42));
+}
+
+#endif
 
 } // namespace nix

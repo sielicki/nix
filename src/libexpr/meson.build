@@ -19,6 +19,13 @@ subdir('nix-meson-build-support/deps-lists')
 configdata_pub = configuration_data()
 configdata_priv = configuration_data()
 
+lexy = dependency(
+  'foonathan-lexy',
+  required : get_option('lexy'),
+  include_type : 'system',
+)
+configdata_pub.set('NIX_HAVE_LEXY', lexy.found().to_int())
+
 deps_private_maybe_subproject = []
 deps_public_maybe_subproject = [
   dependency('nix-util'),
@@ -188,6 +195,12 @@ subdir('nix-meson-build-support/windows-version')
 # NOTE: missed inlining can be spotted (for Clang) using -Rpass-missed=inline
 # and -fdump-ipa-inline-missed (for GCC).
 parser_library_cpp_args = []
+parser_extra_sources = []
+parser_extra_deps = []
+if lexy.found()
+  subdir('lexy')
+  parser_extra_deps += lexy
+endif
 
 if not get_option('debug')
   if cxx.get_id() == 'clang'
@@ -213,8 +226,9 @@ parser_library = static_library(
   lexer_tab,
   'lexer-helpers.cc',
   'parser.cc',
+  parser_extra_sources,
   cpp_args : parser_library_cpp_args,
-  dependencies : deps_public + deps_private + deps_public_no_pkgconfig + deps_private_no_pkgconfig,
+  dependencies : deps_public + deps_private + deps_public_no_pkgconfig + deps_private_no_pkgconfig + parser_extra_deps,
   include_directories : include_dirs,
   # 1. Stdlib and regular assertions regress parser performance significantly, so build without
   # them for this one library when building in a release configuration.

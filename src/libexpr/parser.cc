@@ -50,7 +50,7 @@ auto parseWithBackend(std::span<char> input, ParserState & state)
     return &result->root();
 }
 
-/** Both entry points share parser-state setup. */
+/** Both entry points share backend selection and parser-state setup. */
 template<bool Repl>
 auto parseBuffer(
     char * text,
@@ -64,6 +64,13 @@ auto parseBuffer(
     DocCommentMap & docComments,
     const ref<SourceAccessor> rootFS)
 {
+    const auto & backend = settings.parser.get();
+    if (backend != "bison" && backend != "lexy")
+        throw UsageError("unknown parser '%s'; expected 'bison' or 'lexy'", backend);
+#if !NIX_HAVE_LEXY
+    if (backend == "lexy")
+        throw UsageError("this Nix was built without lexy parser support");
+#endif
     if (length < 2 || text[length - 1] != '\0' || text[length - 2] != '\0')
         throw Error("parser input must end in two NUL bytes");
     LexerState lexerState{
@@ -82,6 +89,10 @@ auto parseBuffer(
         .settings = settings,
     };
     auto input = std::span(text, length);
+#if NIX_HAVE_LEXY
+    if (backend == "lexy")
+        return parseWithBackend<LexyParserBackend, Repl>(input, state);
+#endif
     return parseWithBackend<BisonParserBackend, Repl>(input, state);
 }
 
