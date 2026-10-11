@@ -93,6 +93,8 @@ mkMesonDerivation (
       (lib.mesonBool "plugin-c-api" nix-cli.exportsPluginCApi)
     ];
 
+    NIX_TEST_REQUIRE_LEXY = lib.boolToString nix-expr.enableLexy;
+
     doCheck = true;
 
     installPhase = ''

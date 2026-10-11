@@ -36,6 +36,9 @@ mkMesonExecutable (finalAttrs: {
     ./.version
     ./meson.build
     ./meson.options
+    # Internal allocator tests also build from this isolated component source.
+    ../libexpr/parser-allocators.hh
+    ../libexpr/lexy/values/storage.hh
     (fileset.fileFilter (file: file.hasExt "cc") ./.)
     (fileset.fileFilter (file: file.hasExt "hh") ./.)
   ];
@@ -70,6 +73,17 @@ mkMesonExecutable (finalAttrs: {
             + ''
               export _NIX_TEST_UNIT_DATA=${resolvePath ./data}
               ${stdenv.hostPlatform.emulator buildPackages} ${lib.getExe finalAttrs.finalPackage}
+            ''
+            + lib.optionalString nix-expr.enableLexy ''
+              # Require both parsers: other builds instantiate only Bison tests.
+              echo '1 + 2' > parser-smoke.nix
+              # The raw checker needs the same stack allowance as the CLI.
+              {
+                printf '%8192s' "" | tr ' ' '('
+                printf '42'
+                printf '%8192s\n' "" | tr ' ' ')'
+              } > parser-deep.nix
+              ${stdenv.hostPlatform.emulator buildPackages} ${lib.getExe' finalAttrs.finalPackage "nix-parser-check"} parser-smoke.nix parser-deep.nix
             ''
             + lib.optionalString withBenchmarks ''
               ${stdenv.hostPlatform.emulator buildPackages} ${lib.getExe' finalAttrs.finalPackage "nix-expr-benchmarks"}

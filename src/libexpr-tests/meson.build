@@ -59,6 +59,7 @@ sources = files(
   'nix_api_value.cc',
   'nix_api_value_internal.cc',
   'parser.cc',
+  'parser-allocators.cc',
   'primops.cc',
   'search-path.cc',
   'trivial.cc',
@@ -92,6 +93,16 @@ test(
   },
   protocol : 'gtest',
 )
+
+executable(
+  'nix-parser-check',
+  'parser-check.cc',
+  dependencies : deps_private_subproject + deps_private + deps_private_no_pkgconfig,
+  include_directories : include_dirs,
+  link_args : linker_export_flags,
+  install : true,
+)
+
 
 # Build benchmarks if enabled
 if get_option('benchmarks')

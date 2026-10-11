@@ -127,6 +127,7 @@ suites = [
       'json.sh',
       'lang-gc.sh',
       'lang.sh',
+      'parser.sh',
       'legacy-ssh-store.sh',
       'linux-sandbox.sh',
       'logging.sh',
