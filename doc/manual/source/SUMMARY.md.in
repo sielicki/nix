@@ -148,6 +148,7 @@
 - [Glossary](glossary.md)
 - [Development](development/index.md)
   - [Building](development/building.md)
+  - [Experimental lexy parser](development/lexy.md)
   - [Testing](development/testing.md)
   - [Benchmarking](development/benchmarking.md)
   - [Debugging](development/debugging.md)

@@ -86,7 +86,10 @@ mkMesonExecutable (finalAttrs: {
               ${stdenv.hostPlatform.emulator buildPackages} ${lib.getExe' finalAttrs.finalPackage "nix-parser-check"} parser-smoke.nix parser-deep.nix
             ''
             + lib.optionalString withBenchmarks ''
-              ${stdenv.hostPlatform.emulator buildPackages} ${lib.getExe' finalAttrs.finalPackage "nix-expr-benchmarks"}
+              # This is an execution smoke test. Time-based calibration retains
+              # substantial evaluator setup memory outside the timed region;
+              # use the maintainer drivers for actual performance measurements.
+              ${stdenv.hostPlatform.emulator buildPackages} ${lib.getExe' finalAttrs.finalPackage "nix-expr-benchmarks"} --benchmark_min_time=1x
             ''
             + ''
               touch $out

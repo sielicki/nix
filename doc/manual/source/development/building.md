@@ -123,6 +123,11 @@ $ nix build
 
 You can also build Nix for one of the [supported platforms](#platforms).
 
+## Trying the experimental lexy parser
+
+See [the lexy parser guide](lexy.md) for build options, runtime configuration,
+implementation details, and performance comparisons with Bison.
+
 ## Platforms
 
 Nix can be built for various platforms, as specified in [`flake.nix`]:

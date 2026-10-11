@@ -112,6 +112,7 @@ if get_option('benchmarks')
     'bench-main.cc',
     'dynamic-attrs-bench.cc',
     'get-drvs-bench.cc',
+    'parser-bench.cc',
     'regex-cache-bench.cc',
   )
 
