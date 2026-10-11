@@ -4,6 +4,7 @@
 #include <map>
 #include <span>
 #include <memory>
+#include <mutex>
 #include <vector>
 #include <memory_resource>
 #include <algorithm>
@@ -22,6 +23,7 @@
 namespace nix {
 
 class EvalState;
+class ParserAllocators;
 class PosTable;
 struct Env;
 struct ExprWith;
@@ -837,9 +839,18 @@ class Exprs
     /* Thread-safe fallback resource, which might be a bit slower. */
     std::pmr::synchronized_pool_resource fallbackResource;
     BumpMemoryResource buffer{BumpMemoryResource::defaultReserveSize, &fallbackResource};
+    // Destroy parser cursors before their upstream expression storage.
+    std::unique_ptr<ParserAllocators> parserAllocators;
+    std::once_flag parserAllocatorsOnce;
 
 public:
+    Exprs();
+    ~Exprs();
+
     std::pmr::polymorphic_allocator<char> alloc{&buffer};
+
+    /** Borrow a cursor on this thread; its storage is shared by successive parses. */
+    std::pmr::polymorphic_allocator<char> parserAllocator();
 
     template<class C>
     [[gnu::always_inline]]

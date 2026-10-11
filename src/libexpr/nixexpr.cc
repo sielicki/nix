@@ -1,4 +1,5 @@
 #include "nix/expr/nixexpr.hh"
+#include "parser-allocators.hh"
 #include "nix/expr/eval.hh"
 #include "nix/expr/symbol-table.hh"
 #include "nix/util/util.hh"
@@ -10,6 +11,17 @@
 #include "nix/util/strings-inline.hh"
 
 namespace nix {
+
+Exprs::Exprs() = default;
+Exprs::~Exprs() = default;
+
+std::pmr::polymorphic_allocator<char> Exprs::parserAllocator()
+{
+    // Create the cursor map on first use; callers using alloc directly do not
+    // need it. Synchronize initialization before looking up this thread's cursor.
+    std::call_once(parserAllocatorsOnce, [&] { parserAllocators = std::make_unique<ParserAllocators>(buffer); });
+    return parserAllocators->forCurrentThread();
+}
 
 Counter Expr::nrExprs;
 
